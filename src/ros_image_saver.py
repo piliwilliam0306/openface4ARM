@@ -9,11 +9,12 @@ from cv_bridge import CvBridge, CvBridgeError
 # OpenCV2 for saving an image
 import cv2
 from std_msgs.msg import String
-
+import os
 # Instantiate CvBridge
 bridge = CvBridge()
 count = 0
 transmit_progress = 0
+path = 'banana'
 
 def image_callback(msg):
     global count
@@ -26,11 +27,12 @@ def image_callback(msg):
         print(e)
     else:
         # Save your OpenCV2 image as a jpeg
-        cv2.imwrite('banana%s.jpeg' %count, cv2_img)
-	
+        #cv2.imwrite('banana%s.jpeg' %count, cv2_img)
+        cv2.imwrite(os.path.join(path,'banana%s.jpeg' %count), cv2_img)
 
 def main():
     rospy.init_node('image_listener')
+    
     # Define your image topic
     image_topic = "/banana/image"
     # Set up your subscriber and define its callback
@@ -39,4 +41,7 @@ def main():
     rospy.spin()
 
 if __name__ == '__main__':
+    if not os.path.exists(path):
+    	os.makedirs(path)
+    os.system('./batch-represent/main.lua -outDir ./data/mydataset/banana_feature -data ./data/mydataset/banana_aligned') 
     main()
