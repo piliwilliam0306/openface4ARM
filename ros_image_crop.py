@@ -10,7 +10,7 @@ import os
 bridge = CvBridge()
 count = 0
 transmit_progress = 0
-path = 'banana'
+path = 'data/mydataset/raw/banana'
 
 def image_callback(msg):
     global count
@@ -37,20 +37,15 @@ def main():
     # Set up your subscriber and define its callback
     rospy.Subscriber(image_topic, Image, image_callback)
     rospy.sleep(4)
-    #rospy.loginfo("Finished taking %s images", %count)   
+    rospy.loginfo("Finished taking images, start cropping")   
     now = rospy.get_rostime()
-    
-    os.system('./batch-represent/main.lua -outDir ./data/mydataset/banana_feature -data ./data/mydataset/banana_aligned')
-    new = rospy.get_rostime()
-    diff = new.secs - now.secs
-    rospy.loginfo("Generate Representations took %i seconds", diff)
 
-    os.system('./demos/classifier.py train ./data/mydataset/banana_feature')  
+    os.system('for N in {1..4}; do ./util/align-dlib.py ./data/mydataset/raw align outerEyesAndNose ./data/mydataset/banana_aligned --size 96 & done')  
     new2 = rospy.get_rostime()
-    diff = new2.secs - new.secs
-    rospy.loginfo("Create the Classification Model %i seconds", diff)
+    diff = new2.secs - now.secs
+    rospy.loginfo("Cropping took %i seconds", diff)
 
-    rospy.loginfo("Training done")
+    rospy.loginfo("Cropping done")
     rospy.signal_shutdown("Done.") 
     # Spin until ctrl + c
     rospy.spin()
