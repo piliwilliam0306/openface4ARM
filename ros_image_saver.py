@@ -10,7 +10,7 @@ import os
 bridge = CvBridge()
 count = 0
 transmit_progress = 0
-path = 'banana'
+path = 'data/mydataset/banana_aligned/banana'
 
 def image_callback(msg):
     global count
@@ -39,7 +39,7 @@ def main():
     rospy.sleep(4)
     #rospy.loginfo("Finished taking %s images", %count)   
     now = rospy.get_rostime()
-    
+    #os.system('rm -rf /data/mydataset/banana_aligned/cache.t7') 
     os.system('./batch-represent/main.lua -outDir ./data/mydataset/banana_feature -data ./data/mydataset/banana_aligned')
     new = rospy.get_rostime()
     diff = new.secs - now.secs
@@ -58,8 +58,5 @@ def main():
 if __name__ == '__main__':
     if not os.path.exists(path):
     	os.makedirs(path)
+    
     main()
-    #os.system('./batch-represent/main.lua -outDir ./data/mydataset/banana_feature -data ./data/mydataset/banana_aligned') 
-    #rospy.loginfo("feature done") 
-    #os.system('./demos/classifier.py train ./data/mydataset/banana_feature')
-    #main()
