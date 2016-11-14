@@ -9,7 +9,7 @@
         <param name="video_device" value="$(arg video_device)" />
         <param name="image_width" value="640" />
         <param name="image_height" value="480" />
-        <param name="framerate" value="15" />
+        <param name="framerate" value="10" />
         <param name="pixel_format" value="mjpeg" />
         <param name="contrast" value="32" />
         <param name="brightness" value="32" />
