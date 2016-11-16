@@ -24,6 +24,15 @@
 ##Solve out of memory problem when installing torch on TK1 
     modify torch/extra/cutorch/rocks/cutorch-scm-1.rockspec by replacing "-j$(getconf _NPROCESSORS_ONLN)" with "-j1".
 
+##Running openface_ros node
+    $ rosrun openface4ARM openface_server.py train ./data/mydataset/banana_feature
+    
+##Tranning service (replace banana with new member name, done msg will be dumped when finish training)
+    $ rosservice call /trainning "name: 'banana'"
+
+##Recognition service (member will be recognized)
+    $ rosservice call /whoami "request: 'yo'"
+
 # Reference
 https://cmusatyalab.github.io/openface/setup
 
