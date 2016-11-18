@@ -135,7 +135,7 @@ def train(label):
     path = ('data/mydataset/raw/%s' %label)
     if not os.path.exists(path):
         os.makedirs(path)
-    image_topic = "/banana/image"
+    image_topic = "/camera/rgb/image_raw"
     rospy.Subscriber(image_topic, Image, image_callback)
     rospy.sleep(6)
     now = rospy.get_rostime()

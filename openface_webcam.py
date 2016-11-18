@@ -112,7 +112,7 @@ def image_callback(msg):
 
 if __name__ == '__main__':
     rospy.init_node('people_rec_stream')
-    image_topic = "/banana/image"
+    image_topic = "/camera/rgb/image_raw"
     rospy.Subscriber(image_topic, Image, image_callback)
     pub = rospy.Publisher('member', String, queue_size=10)
     parser = argparse.ArgumentParser()

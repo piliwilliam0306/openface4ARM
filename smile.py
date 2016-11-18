@@ -32,7 +32,7 @@ def image_callback(msg):
 def main():
     rospy.init_node('image_listener')
     
-    image_topic = "/banana/image"
+    image_topic = "/camera/rgb/image_raw"
     rospy.Subscriber(image_topic, Image, image_callback)
     rospy.sleep(1)
     #rospy.loginfo("Finished taking %s images", %count)   
