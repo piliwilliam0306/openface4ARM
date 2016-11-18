@@ -18,7 +18,7 @@
     th> require 'dpnn'
     th> net = torch.load('nn4.v1.ascii.t7', 'ascii')
     torch.save('nn4.v1.t7', net)
-    th> net = torch.load('small2.v1.ascii.t7', 'ascii')
+    th> net = torch.load('nn4.small2.v1.ascii.t7', 'ascii')
     torch.save('nn4.small2.v1.t7', net)
 
 ##Solve out of memory problem when installing torch on TK1 
