@@ -47,7 +47,7 @@ from sklearn.naive_bayes import GaussianNB
 import rospy
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
-from std_msgs.msg import String
+from std_msgs.msg import String, UInt16
 from openface4ARM.srv import *
 bridge = CvBridge()
 #count = 0
@@ -73,8 +73,7 @@ def image_callback(msg):
                 print(e)
         else:
                 # Save your OpenCV2 image as a jpeg
-                #cv2.imwrite('banana%s.jpeg' %count, cv2_img)
-                cv2.imwrite(os.path.join(path,'banana%s.jpeg' %count), cv2_img)
+                cv2.imwrite(os.path.join(path,'IMAGE%s.jpeg' %count), cv2_img)
     else:
         return
 
@@ -126,29 +125,36 @@ def getRep(imgPath):#, multiple=False):
     sreps = sorted(reps, key=lambda x: x[0])
     return sreps
 
-
 #def train(args):
-def train(label):
+#def train(label):
+def train(req):
     global path
     global count 
     count = 0
-    path = ('data/mydataset/raw/%s' %label)
+    path = ('data/mydataset/raw/%s' %req.name)
     if not os.path.exists(path):
         os.makedirs(path)
     image_topic = "/camera/rgb/image_raw"
     rospy.Subscriber(image_topic, Image, image_callback)
+    pub = rospy.Publisher('training_progress', UInt16, queue_size=10)
+    progress = 0
+    pub.publish(progress)
     rospy.sleep(6)
+    progress = 33
+    pub.publish(progress)
     now = rospy.get_rostime()
-
     os.system('rm data/mydataset/banana_aligned/cache.t7')
     os.system('for N in {1..4}; do ./util/align-dlib.py ./data/mydataset/raw align outerEyesAndNose ./data/mydataset/banana_aligned --size 96 & done')
     rospy.sleep(45.)
-    #rospy.sleep(1.)
+    progress = 66
+    pub.publish(progress)
     new2 = rospy.get_rostime()
     diff = new2.secs - now.secs
     rospy.loginfo("Cropping took %i seconds", diff)
     os.system('./batch-represent/main.lua -outDir ./data/mydataset/banana_feature -data ./data/mydataset/banana_aligned')
     rospy.sleep(15.)
+    progress = 99
+    pub.publish(progress)
     #rospy.sleep(1.)
     now = rospy.get_rostime()
     diff = now.secs - new2.secs
@@ -224,6 +230,9 @@ def train(label):
     print("Saving classifier to '{}'".format(fName))
     with open(fName, 'w') as f:
         pickle.dump((le, clf), f)
+    os.system('rm -rf data/mydataset/raw/*')
+    progress = 100
+    pub.publish(progress)
     done = 'done'
     return done
 

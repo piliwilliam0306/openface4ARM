@@ -3,7 +3,7 @@
 
     <node name="usb_cam" pkg="usb_cam" type="usb_cam_node" clear_params="true" output="screen">
     
-    	<remap from="usb_cam/image_raw" to="/banana/image" />
+    	<remap from="usb_cam/image_raw" to="/camera/rgb/image_raw" />
     	<remap from="usb_cam/camera_info" to="/camera/rgb/camera_info" />
 
         <param name="video_device" value="$(arg video_device)" />
