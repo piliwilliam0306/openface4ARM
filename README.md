@@ -29,9 +29,11 @@
     
 ##Tranning service (replace banana with new member name, done msg will be dumped when finish training)
     $ rosservice call /trainning "name: 'banana'"
+![](https://github.com/piliwilliam0306/openface4ARM/blob/master/train.jpg)
 
 ##Recognition service (member will be recognized)
     $ rosservice call /whoami "request: 'yo'"
+![](https://github.com/piliwilliam0306/openface4ARM/blob/master/infer.jpg)
 
 # Reference
 https://cmusatyalab.github.io/openface/setup
