@@ -24,6 +24,12 @@
 ##Solve out of memory problem when installing torch on TK1 
     modify torch/extra/cutorch/rocks/cutorch-scm-1.rockspec by replacing "-j$(getconf _NPROCESSORS_ONLN)" with "-j1".
 
+##Test if odroid can get images from android
+    $ rosrun openface4ARM CompressedImg_saver.py
+
+##Setting label
+    $ rostopic pub /cmdTrainning std_msgs/String "data: 'yo'"
+<!--
 ##Running openface_ros node
     $ rosrun openface4ARM openface_server.py train ./data/mydataset/banana_feature
     
@@ -34,7 +40,7 @@
 ##Recognition service (member will be recognized)
     $ rosservice call /whoami "request: 'yo'"
 ![](https://github.com/piliwilliam0306/openface4ARM/blob/master/infer.jpg)
-
+-->
 # Reference
 https://cmusatyalab.github.io/openface/setup
 
