@@ -7,16 +7,17 @@ import cv2
 from std_msgs.msg import String, Float64, Bool,UInt8
 import os
 import math
+import time
 # Instantiate CvBridge
 bridge = CvBridge()
 count = 0
 transmit_progress = 0
 path = 'data/mydataset/banana_aligned/jimmy'
-images_required = 10.0
+images_required = 50.0
 def image_callback(msg):
     global count
     count = count + 1
-    #if count < images_required + 1:	
+    banana = time.strftime("%H:%M:%S")
     if count < images_required + 1:	
     	rospy.loginfo("Received %s images!" %count) 
     	try:
@@ -27,8 +28,7 @@ def image_callback(msg):
         	print(e)
     	else:
         	# Save your OpenCV2 image as a jpeg
-        	#cv2.imwrite('banana%s.jpeg' %count, cv2_img)
-        	cv2.imwrite(os.path.join(path,'banana%s.jpeg' %count), cv2_img)
+        	cv2.imwrite(os.path.join(path,'%s.jpeg' %banana), cv2_img)
     		image_progress = count / images_required * 100
 		pub.publish(image_progress)
     else:
@@ -37,7 +37,7 @@ def image_callback(msg):
 def train_callback(msg):
     global count
     count = 0
-    image_topic = "/image/compressed"
+    image_topic = "croppedImages/compressed"
     #rospy.Subscriber(image_topic, Image, image_callback)
     rospy.Subscriber(image_topic, CompressedImage, image_callback)
     #os.system('rm -rf /data/mydataset/banana_aligned/cache.t7')
