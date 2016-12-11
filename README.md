@@ -27,20 +27,25 @@
 ##Test if odroid can get images from android
     $ rosrun openface4ARM CompressedImg_saver.py
 
-##Setting label
-    $ rostopic pub /cmdTrainning std_msgs/String "data: 'yo'"
-<!--
 ##Running openface_ros node
-    $ rosrun openface4ARM openface_server.py train ./data/mydataset/banana_feature
-    
-##Tranning service (replace banana with new member name, done msg will be dumped when finish training)
-    $ rosservice call /trainning "name: 'banana'"
+    $ rosrun openface4ARM openface_node.py train ./data/mydataset/banana_align
+   
+##Start tranning (replace banana with member name. trainingProgress topic = 100 when finish training)
+    $ rostopic pub /cmdTrainning std_msgs/String "data: 'banana'"
+<!--    
 ![](https://github.com/piliwilliam0306/openface4ARM/blob/master/train.jpg)
+-->
+##Check capturing progress
+    $ rostopic echo /capturingProgress
 
-##Recognition service (member will be recognized)
-    $ rosservice call /whoami "request: 'yo'"
+##Start recognition
+    $ rostopic pub -1 /cmdRecognition std_msgs/Bool "data: true"
+<!--
 ![](https://github.com/piliwilliam0306/openface4ARM/blob/master/infer.jpg)
 -->
+##Check Result
+    $ rostopic echo /recognitionResults
+
 # Reference
 https://cmusatyalab.github.io/openface/setup
 
