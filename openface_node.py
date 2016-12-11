@@ -60,7 +60,7 @@ pickleDir = os.path.join(fileDir, 'data/mydataset/banana_feature')
 recDir = 'data/mydataset/banana_rec'
 featureDir = 'data/mydataset/banana_feature'
 path = ''
-images_required = 10.0
+images_required = 0.0
 transmit_progress = 0
 
 def image_callback(msg):
@@ -77,13 +77,12 @@ def image_callback(msg):
                 print(e)
         else:
                 # Save your OpenCV2 image as a jpeg
-                cv2.imwrite(os.path.join(path,'%s.jpeg' %banana), cv2_img)
+		cv2.imwrite(os.path.join(path,'IMAGE%s.jpeg' %count), cv2_img)
+                #cv2.imwrite(os.path.join(path,'%s.jpeg' %banana), cv2_img)
 		image_progress = count / images_required *100
                 pub.publish(image_progress)
     else:
         return
-
-
 
 def getRep(imgPath):#, multiple=False):
     start = time.time()
@@ -136,14 +135,16 @@ def getRep(imgPath):#, multiple=False):
 def train_callback(msg):
     global path
     global count 
+    global images_required
+    images_required = 10.0
     count = 0
     image_folder = 'banana'
     #path = ('data/mydataset/raw/%s' %msg.data)
     path = ('data/mydataset/banana_aligned/%s' %image_folder)
     if not os.path.exists(path):
         os.makedirs(path)
-    image_topic = "croppedImages/compressed"
-    rospy.Subscriber(image_topic, CompressedImage, image_callback)
+    #image_topic = "croppedImages/compressed"
+    #rospy.Subscriber(image_topic, CompressedImage, image_callback)
 
     os.system('rm data/mydataset/banana_aligned/cache.t7')
     while not rospy.is_shutdown():
@@ -180,42 +181,49 @@ def train_callback(msg):
 	    pub1.publish(100)
 	    break
 
-#def infer(args):#, multiple=False):
-def infer(yo):#, multiple=False):
-#def infer(args, multiple=False):
-    os.system('rosrun openface4ARM smile.py') 
-    rospy.sleep(1.) 
-    #with open(args.classifierModel, 'r') as f:
-    with open(os.path.join(pickleDir,'classifier.pkl'), 'r') as f:
-    #f == os.path.join(pickleDir,'classifier.pkl')
-        (le, clf) = pickle.load(f)
+def rec_callback(msg):
+    if msg.data == True:
+        global path
+        global images_required
+        global count
+        path = 'data/mydataset/banana_rec'
+        images_required = 1.0
+        count = 0
+        #image_topic = "croppedImages/compressed"
+        #rospy.Subscriber(image_topic, CompressedImage, image_callback)
+        #with open(args.classifierModel, 'r') as f:
+        with open(os.path.join(pickleDir,'classifier.pkl'), 'r') as f:
+        #f == os.path.join(pickleDir,'classifier.pkl')
+            (le, clf) = pickle.load(f)
+        while not rospy.is_shutdown():
+	    if count == images_required:
+	        #for img in recDir:
+	        img = "data/mydataset/banana_rec/banana1.jpeg"
+		print("\n=== {} ===".format(img))
+		reps = getRep(img)#, multiple)
+		if len(reps) > 1:
+		    print("List of faces in image from left to right")
+		for r in reps:
+		    rep = r[1].reshape(1, -1)
+		    bbx = r[0]
+		    start = time.time()
+		    predictions = clf.predict_proba(rep).ravel()
+		    maxI = np.argmax(predictions)
+		    person = le.inverse_transform(maxI)
+		    confidence = predictions[maxI]
+		    #if args.verbose:
+		    #    print("Prediction took {} seconds.".format(time.time() - start))
+		    #if multiple:
+		    #    print("Predict {} @ x={} with {:.2f} confidence.".format(person, bbx,
+		    #                                                                 confidence))
+		    #else:
+		    print("Predict {} with {:.2f} confidence.".format(person, confidence))
+		    if isinstance(clf, GMM):
+		        dist = np.linalg.norm(rep - clf.means_[maxI])
+		        print("  + Distance from the mean: {}".format(dist))
+	    	    pub2.publish(person)
+	        break
 
-    #for img in args.imgs:
-    img = "data/mydataset/banana_rec/banana1.jpeg"
-    print("\n=== {} ===".format(img))
-    reps = getRep(img)#, multiple)
-    if len(reps) > 1:
-        print("List of faces in image from left to right")
-    for r in reps:
-        rep = r[1].reshape(1, -1)
-        bbx = r[0]
-        start = time.time()
-        predictions = clf.predict_proba(rep).ravel()
-        maxI = np.argmax(predictions)
-        person = le.inverse_transform(maxI)
-        confidence = predictions[maxI]
-        #if args.verbose:
-        #    print("Prediction took {} seconds.".format(time.time() - start))
-        #if multiple:
-        #    print("Predict {} @ x={} with {:.2f} confidence.".format(person, bbx,
-        #                                                                 confidence))
-        #else:
-        print("Predict {} with {:.2f} confidence.".format(person, confidence))
-        if isinstance(clf, GMM):
-            dist = np.linalg.norm(rep - clf.means_[maxI])
-            print("  + Distance from the mean: {}".format(dist))
-    #return (person, confidence)
-    return person
 
 if __name__ == '__main__':
     if not os.path.exists(recDir):
@@ -223,8 +231,13 @@ if __name__ == '__main__':
     rospy.init_node('people_rec')
     pub = rospy.Publisher('capturingProgress', UInt8, queue_size=1)
     pub1 = rospy.Publisher('trainingProgress', UInt8, queue_size=1)
+    pub2 = rospy.Publisher('recognitionResults', String, queue_size=1)
     train_topic = "cmdTrainning"
+    rec_topic = "cmdRecognition"
+    image_topic = "croppedImages/compressed"
+    rospy.Subscriber(image_topic, CompressedImage, image_callback)
     rospy.Subscriber(train_topic, String, train_callback)    
+    rospy.Subscriber(rec_topic, Bool, rec_callback)
 
     parser = argparse.ArgumentParser()
 
