@@ -100,7 +100,7 @@ def getRep(imgPath):#, multiple=False):
     #if args.verbose:
     #    print("Loading the image took {} seconds.".format(time.time() - start))
 
-    start = time.time()
+    #start = time.time()
 
     #if multiple:
     #    bbs = align.getAllFaceBoundingBoxes(rgbImg)
@@ -126,12 +126,17 @@ def getRep(imgPath):#, multiple=False):
         #    print("Alignment took {} seconds.".format(time.time() - start))
         #    print("This bbox is centered at {}, {}".format(bb.center().x, bb.center().y))
 
-        start = time.time()
+        #start = time.time()
+	###comment out to ignore align face
         rep = net.forward(alignedFace)
+        #rep = net.forward(rgbImg)
         #if args.verbose:
         #    print("Neural network forward pass took {} seconds.".format(
         #        time.time() - start))
         reps.append((bb.center().x, rep))
+
+    #rep = net.forward(rgbImg)
+    #reps.append((bb.center().x, rep))
     sreps = sorted(reps, key=lambda x: x[0])
     return sreps
 
@@ -139,7 +144,7 @@ def train_callback(msg):
     global path
     global count 
     global images_required
-    images_required = 0.0
+    images_required = 5.0
     count = 0
     image_folder = 'banana'
     #path = ('data/mydataset/raw/%s' %msg.data)
@@ -201,7 +206,7 @@ def rec_callback(msg):
         while not rospy.is_shutdown():
 	    if count == images_required:
 	        #for img in recDir:
-	        img = "data/mydataset/banana_rec/banana1.jpeg"
+	        img = "data/mydataset/banana_rec/IMAGE1.jpeg"
 		print("\n=== {} ===".format(img))
 		reps = getRep(img)#, multiple)
 		if len(reps) > 1:

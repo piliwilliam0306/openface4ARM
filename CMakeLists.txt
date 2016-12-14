@@ -60,6 +60,7 @@ find_package(catkin REQUIRED COMPONENTS
    FILES
    FaceRec.srv
    Train.srv
+   Startup.srv
 #   Service2.srv
  )
 
