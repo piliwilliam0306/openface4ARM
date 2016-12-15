@@ -147,8 +147,8 @@ def train_callback(msg):
     images_required = 5.0
     count = 0
     image_folder = 'banana'
-    #path = ('data/mydataset/raw/%s' %msg.data)
-    path = ('data/mydataset/banana_aligned/%s' %image_folder)
+    path = ('data/mydataset/banana_aligned/%s' %msg.data)
+    #path = ('data/mydataset/banana_aligned/%s' %image_folder)
     if not os.path.exists(path):
         os.makedirs(path)
     #image_topic = "croppedImages/compressed"
@@ -240,7 +240,7 @@ if __name__ == '__main__':
     pub = rospy.Publisher('capturingProgress', UInt8, queue_size=1)
     pub1 = rospy.Publisher('trainingProgress', UInt8, queue_size=1)
     pub2 = rospy.Publisher('recognitionResults', String, queue_size=1)
-    train_topic = "cmdTrainning"
+    train_topic = "cmdTraining"
     rec_topic = "cmdRecognition"
     image_topic = "croppedImages/compressed"
     rospy.Subscriber(image_topic, CompressedImage, image_callback)
