@@ -49,7 +49,7 @@ def train_callback(msg):
 def main():
     rospy.init_node('image_listener')
     
-    train_topic = "cmdTrainning"
+    train_topic = "cmdTraining"
     rospy.Subscriber(train_topic, String, train_callback)
     #rospy.sleep(4)
     #rospy.loginfo("Finished taking %s images", %count)   
