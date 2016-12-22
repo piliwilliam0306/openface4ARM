@@ -70,10 +70,8 @@ function repBatch(paths, inputs, labels, batchSz)
    end
 
    for i=1,batchSz do
-      --labelsCSV:write({labels[i], paths[i]})
-      --table.insert(banana_labelsCSV, {labels[i], paths[i]})
       table.insert(banana_labelsCSV, {preTotalLabel, paths[i]})
-      repsCSV:write(embeddings[i]:totable())
+      table.insert(banana_repsCSV, embeddings[i]:totable())
    end
 
    print(('Represent: %d/%d'):format(batchNumber, nImgs))
