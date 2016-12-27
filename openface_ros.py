@@ -144,21 +144,20 @@ def train_callback(msg):
     global path
     global count 
     global images_required
-    images_required = 5.0
+    images_required = 50.0
     count = 0
-    image_folder = 'banana'
-    path = ('data/mydataset/banana_aligned/%s' %msg.data)
-    #path = ('data/mydataset/banana_aligned/%s' %image_folder)
+    path = ('data/mydataset/banana_aligned/{}/{}'.format(msg.data,msg.data))
     if not os.path.exists(path):
         os.makedirs(path)
-    #image_topic = "croppedImages/compressed"
-    #rospy.Subscriber(image_topic, CompressedImage, image_callback)
 
-    os.system('rm data/mydataset/banana_aligned/cache.t7')
+    #os.system('rm data/mydataset/banana_aligned/cache.t7')
     while not rospy.is_shutdown():
     	if count == images_required:
 	    now = rospy.get_rostime()
-	    os.system('./batch-represent/main.lua -outDir ./data/mydataset/banana_feature -data ./data/mydataset/banana_aligned')
+	    #os.system('./batch-represent/main.lua -outDir ./data/mydataset/banana_feature -data ./data/mydataset/banana_aligned')
+	    #os.system('./batch-represent/main.lua -outDir ./data/mydataset/banana_feature -data ./data/mydataset/banana_aligned/{}'.format(msg.data))
+	    #test.lua is for register new member only
+	    os.system('./batch-represent/test.lua -outDir ./data/mydataset/banana_feature -data ./data/mydataset/banana_aligned/{}'.format(msg.data))
 	    new = rospy.get_rostime()
 	    diff = new.secs - now.secs
 	    rospy.loginfo("Feature generation took %i seconds", diff)
@@ -197,8 +196,6 @@ def rec_callback(msg):
         path = 'data/mydataset/banana_rec'
         images_required = 1.0
         count = 0
-        #image_topic = "croppedImages/compressed"
-        #rospy.Subscriber(image_topic, CompressedImage, image_callback)
         #with open(args.classifierModel, 'r') as f:
         with open(os.path.join(pickleDir,'classifier.pkl'), 'r') as f:
         #f == os.path.join(pickleDir,'classifier.pkl')
