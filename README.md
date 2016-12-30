@@ -32,6 +32,10 @@
    
 ##Start tranning (replace banana with member name. trainingProgress topic = 100 when finish training)
     $ rostopic pub /cmdTrainning std_msgs/String "data: 'banana'"
+
+##Cancel tranning 
+    $ rostopic pub /cmdTrainning std_msgs/String "data: 'cancel'"
+
 <!--    
 ![](https://github.com/piliwilliam0306/openface4ARM/blob/master/train.jpg)
 -->
