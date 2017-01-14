@@ -144,15 +144,19 @@ def train_callback(msg):
     global path
     global count 
     global images_required
-    images_required = 50.0
+    images_required = 60.0
     count = 0
-    path = ('data/mydataset/banana_aligned/{}/{}'.format(msg.data,msg.data))
+    #path = ('data/mydataset/banana_aligned/{}/{}'.format(msg.data,msg.data))
+    path = ('data/mydataset/raw/{}'.format(msg.data))
     if not os.path.exists(path):
         os.makedirs(path)
 
     #os.system('rm data/mydataset/banana_aligned/cache.t7')
     while not rospy.is_shutdown():
     	if count == images_required:
+	    #os.system('for N in {1..4}; do ./util/align-dlib.py ./data/mydataset/banana_aligned/people0/banana align outerEyesAndNose ./data/mydataset/banana_aligned/people0 --verbose --size 96 & done')
+	    os.system('./util/align-dlib.py ./data/mydataset/raw/{} align outerEyesAndNose ./data/mydataset/banana_aligned/{} --verbose --size 96'.format(msg.data,msg.data))
+	    rospy.sleep(10.)
 	    now = rospy.get_rostime()
 	    #os.system('./batch-represent/main.lua -outDir ./data/mydataset/banana_feature -data ./data/mydataset/banana_aligned')
 	    #os.system('./batch-represent/main.lua -outDir ./data/mydataset/banana_feature -data ./data/mydataset/banana_aligned/{}'.format(msg.data))
