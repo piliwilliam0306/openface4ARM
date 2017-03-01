@@ -50,7 +50,7 @@ from cv_bridge import CvBridge, CvBridgeError
 from std_msgs.msg import String, UInt16, Float64, Bool,UInt8
 from openface4ARM.srv import *
 bridge = CvBridge()
-count = 0
+count = 1
 
 fileDir = os.path.dirname(os.path.realpath(__file__))
 modelDir = os.path.join(fileDir, 'models')
@@ -68,22 +68,36 @@ imgDim = 96
 
 def image_callback(msg):
     global count
-    count = count + 1
+    #count = count + 1
     banana = time.strftime("%H:%M:%S")
     if count < images_required + 1:
         rospy.loginfo("Received %s images!" %count)
         try:
                 # Convert your ROS Image message to OpenCV2
-                #cv2_img = bridge.imgmsg_to_cv2(msg, "bgr8")
-		cv2_img = bridge.compressed_imgmsg_to_cv2(msg, "bgr8")
+		start = time.time()
+		bgrImg = bridge.imgmsg_to_cv2(msg, "bgr8")
+		#bgrImg = bridge.compressed_imgmsg_to_cv2(msg, "bgr8")
+		rgbImg = cv2.cvtColor(bgrImg, cv2.COLOR_BGR2RGB)
+		outRgb = align.align(
+            	    imgDim,
+            	    rgbImg,
+                    #bb,
+            	    landmarkIndices=openface.AlignDlib.OUTER_EYES_AND_NOSE)
+		if outRgb is not None:
+			#count = count + 1
+			outBgr = cv2.cvtColor(outRgb, cv2.COLOR_RGB2BGR)
+			print("face detect and align took {} seconds.".format(time.time() - start))
+			cv2.imwrite(os.path.join(path,'IMAGE%s.jpeg' %count), outBgr)
+			image_progress = count / images_required * 100
+                	pub.publish(image_progress)
+			# just for fun
+			faceImg = bridge.cv2_to_imgmsg(outBgr, "bgr8")
+			face_pub.publish(faceImg)	
+		else:
+			print("unable to find a face.")
+		    	return
         except CvBridgeError, e:
                 print(e)
-        else:
-                # Save your OpenCV2 image as a jpeg
-		cv2.imwrite(os.path.join(path,'IMAGE%s.jpeg' %count), cv2_img)
-                #cv2.imwrite(os.path.join(path,'%s.jpeg' %banana), cv2_img)
-		image_progress = count / images_required *100
-                pub.publish(image_progress)
     else:
         return
 
@@ -145,7 +159,7 @@ def train_callback(msg):
     global count 
     global images_required
     images_required = 60.0
-    count = 0
+    count = 1
     #path = ('data/mydataset/banana_aligned/{}/{}'.format(msg.data,msg.data))
     path = ('data/mydataset/raw/{}'.format(msg.data))
     if not os.path.exists(path):
@@ -154,9 +168,6 @@ def train_callback(msg):
     #os.system('rm data/mydataset/banana_aligned/cache.t7')
     while not rospy.is_shutdown():
     	if count == images_required:
-	    #os.system('for N in {1..4}; do ./util/align-dlib.py ./data/mydataset/banana_aligned/people0/banana align outerEyesAndNose ./data/mydataset/banana_aligned/people0 --verbose --size 96 & done')
-	    os.system('./util/align-dlib.py ./data/mydataset/raw/{} align outerEyesAndNose ./data/mydataset/banana_aligned/{} --verbose --size 96'.format(msg.data,msg.data))
-	    rospy.sleep(10.)
 	    now = rospy.get_rostime()
 	    #os.system('./batch-represent/main.lua -outDir ./data/mydataset/banana_feature -data ./data/mydataset/banana_aligned')
 	    #os.system('./batch-represent/main.lua -outDir ./data/mydataset/banana_feature -data ./data/mydataset/banana_aligned/{}'.format(msg.data))
@@ -241,10 +252,12 @@ if __name__ == '__main__':
     pub = rospy.Publisher('capturingProgress', UInt8, queue_size=1)
     pub1 = rospy.Publisher('trainingProgress', UInt8, queue_size=1)
     pub2 = rospy.Publisher('recognitionResults', String, queue_size=1)
+    face_pub = rospy.Publisher('croppedFace', Image, queue_size=1)
     train_topic = "cmdTraining"
     rec_topic = "cmdRecognition"
     image_topic = "croppedImages/compressed"
-    rospy.Subscriber(image_topic, CompressedImage, image_callback)
+    #rospy.Subscriber(image_topic, CompressedImage, image_callback)
+    rospy.Subscriber(image_topic, Image, image_callback)
     rospy.Subscriber(train_topic, String, train_callback)    
     rospy.Subscriber(rec_topic, Bool, rec_callback)
 
