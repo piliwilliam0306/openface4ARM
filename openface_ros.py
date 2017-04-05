@@ -119,33 +119,31 @@ def getRep(rgbImg):
             trackingFace = 1
         else:
             motion_detected = False
-            rospy.loginfo("unable to detect your face, please face the camera")
-	    return []
+            rospy.loginfo("Unable to detect your face, please face the camera")
+	    return ([], None)
     else:
         trackingQuality = tracker.update(rgbImg)
         if trackingQuality >= 8.75:
             bb = tracker.get_position()
             bb = dlib.rectangle(int(bb.left()),int(bb.top()),int(bb.right()),int(bb.bottom()))
         else:
-            rospy.loginfo("unable to detect your face, please face the camera")
+            rospy.loginfo("Unable to detect your face, please face the camera")
             trackingFace = 0
             motion_detected = False
-            return []
+            return ([], None)
     rospy.loginfo("Face detection took {} seconds.".format(time.time() - start))
     start = time.time()
     alignedFace = align.align(imgDim, rgbImg, bb,
             landmarkIndices=openface.AlignDlib.OUTER_EYES_AND_NOSE)
     if alignedFace is None:
-        return []
+        return ([], None)
     bgrImg = cv2.cvtColor(alignedFace, cv2.COLOR_RGB2BGR)
-    faceImg = bridge.cv2_to_imgmsg(bgrImg, "bgr8")
-    face_pub.publish(faceImg)
     rospy.loginfo("Alignment took {} seconds.".format(time.time() - start))
     start = time.time()
     reps = []
     reps.append(net.forward(alignedFace))
     rospy.loginfo("Neural network forward pass took {} seconds.".format(time.time() - start))
-    return reps
+    return (reps, bgrImg)
 
 def train_callback(msg):
     global training_mode
@@ -164,8 +162,6 @@ def train_callback(msg):
     while not rospy.is_shutdown():
     	if count == images_required:
 	    start = time.time()
-	    #os.system('./batch-represent/main.lua -outDir ./data/mydataset/banana_feature -data ./data/mydataset/banana_aligned')
-	    #os.system('luajit {}main.lua -outDir ./{} -data ./{}'.format(luaDir,featureDir,alignedDir))
 	    os.system('luajit {}main.lua -outDir {} -data {}'.format(luaDir,featureDir,alignedDir))
 	    #os.system('./batch-represent/main.lua -outDir ./data/mydataset/banana_feature -data ./data/mydataset/banana_aligned/{}'.format(msg.data))
 	    #test.lua is for register new member only
@@ -207,6 +203,7 @@ def infer(Img):
 	global lastImg
         with open(os.path.join(featureDir,'classifier.pkl'), 'r') as f:
             (le, clf) = pickle.load(f)
+	start = time.time()
 	gray = cv2.cvtColor(Img, cv2.COLOR_RGB2GRAY)
         gray = cv2.GaussianBlur(gray, (21, 21), 0)
 	avg_area = align.motionDetect(gray, lastImg)
@@ -214,18 +211,22 @@ def infer(Img):
             motion_detected = False
         else:
             motion_detected = True
-	rospy.loginfo("motion state: {}".format(motion_detected))
+	rospy.loginfo("Motion detection took: {} secs".format(time.time()-start))
+	rospy.loginfo("Motion state: {}".format(motion_detected))
 	if motion_detected == True:
-	    reps = getRep(Img)
-	else:
-	    reps = []
-	for r in reps:
-	    rep = r.reshape(1, -1)
-	    predictions = clf.predict_proba(rep).ravel()
-	    maxI = np.argmax(predictions)
-	    person = le.inverse_transform(maxI)
-	    confidence = predictions[maxI]
-	    pub2.publish(person)
+	    reps, bgrImg = getRep(Img)
+	    for r in reps:
+	        rep = r.reshape(1, -1)
+	        predictions = clf.predict_proba(rep).ravel()
+	    	maxI = np.argmax(predictions)
+	    	person = le.inverse_transform(maxI)
+	    	confidence = predictions[maxI]
+	        pub2.publish(person)
+    	    if bgrImg is not None:
+    	    	cv2.putText(bgrImg, "P: {}".format(person), (1, 7), cv2.FONT_HERSHEY_PLAIN, 0.6, (0, 255, 0), 1)
+    	    	cv2.putText(bgrImg, "C: {}".format(confidence), (1, 95), cv2.FONT_HERSHEY_PLAIN, 0.6, (0, 255, 0), 1)
+		faceImg = bridge.cv2_to_imgmsg(bgrImg, "bgr8")
+    	        face_pub.publish(faceImg)
 	lastImg = gray
 
 if __name__ == '__main__':
@@ -245,5 +246,8 @@ if __name__ == '__main__':
     tracker = dlib.correlation_tracker()
     predictor = dlib.shape_predictor(dlibFacePredictor)
     #win = dlib.image_window()
+    try:
+        rospy.spin() 
+    except KeyboardInterrupt:
+        print "Shutting down openface node."
 
-    rospy.spin() 
