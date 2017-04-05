@@ -43,22 +43,23 @@ import rospy
 from sensor_msgs.msg import Image, CompressedImage
 from cv_bridge import CvBridge, CvBridgeError
 from std_msgs.msg import String, UInt16, Float64, Bool,UInt8
-from openface4ARM.srv import *
 bridge = CvBridge()
 count = 0
 trackingFace = 0
 rec_mode = False
 training_mode = False
+motion_detected = False
+lastImg = None
 
-fileDir = os.path.dirname(os.path.realpath(__file__))
+fileDir = os.path.expanduser('~/catkin_ws/src/openface4ARM/')
 modelDir = os.path.join(fileDir, 'models')
 dlibModelDir = os.path.join(modelDir, 'dlib')
 openfaceModelDir = os.path.join(modelDir, 'openface')
-pickleDir = os.path.join(fileDir, 'data/mydataset/banana_feature')
-recDir = 'data/mydataset/banana_rec'
-featureDir = 'data/mydataset/banana_feature'
+featureDir = os.path.join(fileDir, 'data/mydataset/banana_feature/')
+alignedDir = os.path.join(fileDir, 'data/mydataset/banana_aligned/')
+luaDir = os.path.join(fileDir, 'batch-represent/')
 path = ''
-images_required = 10.0
+images_required = 60.0
 transmit_progress = 0
 dlibFacePredictor = os.path.join(dlibModelDir, "shape_predictor_68_face_landmarks.dat")
 networkModel = os.path.join(openfaceModelDir, 'nn4.small2.v1.t7')
@@ -155,26 +156,28 @@ def train_callback(msg):
     global count 
     count = 0
     #path = ('data/mydataset/banana_aligned/{}/{}'.format(msg.data,msg.data))
-    path = ('data/mydataset/banana_aligned/{}'.format(msg.data))
+    path = ('{}{}'.format(alignedDir,msg.data))
     if not os.path.exists(path):
         os.makedirs(path)
 
-    os.system('rm data/mydataset/banana_aligned/cache.t7')
+    os.system('rm {}cache.t7'.format(alignedDir))
     while not rospy.is_shutdown():
     	if count == images_required:
 	    start = time.time()
-	    os.system('./batch-represent/main.lua -outDir ./data/mydataset/banana_feature -data ./data/mydataset/banana_aligned')
+	    #os.system('./batch-represent/main.lua -outDir ./data/mydataset/banana_feature -data ./data/mydataset/banana_aligned')
+	    #os.system('luajit {}main.lua -outDir ./{} -data ./{}'.format(luaDir,featureDir,alignedDir))
+	    os.system('luajit {}main.lua -outDir {} -data {}'.format(luaDir,featureDir,alignedDir))
 	    #os.system('./batch-represent/main.lua -outDir ./data/mydataset/banana_feature -data ./data/mydataset/banana_aligned/{}'.format(msg.data))
 	    #test.lua is for register new member only
 	    #os.system('./batch-represent/test.lua -outDir ./data/mydataset/banana_feature -data ./data/mydataset/banana_aligned/{}'.format(msg.data))
 	    rospy.loginfo("Feature generation took {} seconds".format(time.time()-start))
 	    rospy.loginfo("Loading embeddings.")
-	    fname = "{}/labels.csv".format(featureDir)
+	    fname = "{}labels.csv".format(featureDir)
 	    labels = pd.read_csv(fname, header=None).as_matrix()[:, 1]
 	    labels = map(itemgetter(1),
 		         map(os.path.split,
 		             map(os.path.dirname, labels)))  # Get the directory.
-	    fname = "{}/reps.csv".format(featureDir)
+	    fname = "{}reps.csv".format(featureDir)
 	    embeddings = pd.read_csv(fname, header=None).as_matrix()
 	    le = LabelEncoder().fit(labels)
 	    labelsNum = le.transform(labels)
@@ -182,7 +185,7 @@ def train_callback(msg):
 	    rospy.loginfo("Training for {} classes.".format(nClasses))
 	    clf = SVC(C=1, kernel='linear', probability=True)
 	    clf.fit(embeddings, labelsNum)
-	    fName = "{}/classifier.pkl".format(featureDir)
+	    fName = "{}classifier.pkl".format(featureDir)
 	    rospy.loginfo("Saving classifier to '{}'".format(fName))
 	    with open(fName, 'w') as f:
 		pickle.dump((le, clf), f)
@@ -200,10 +203,22 @@ def rec_callback(msg):
     	rec_mode = False
 	rospy.loginfo('Stopping face recognition mode')
 
-def infer(img):
-        with open(os.path.join(pickleDir,'classifier.pkl'), 'r') as f:
+def infer(Img):
+	global lastImg
+        with open(os.path.join(featureDir,'classifier.pkl'), 'r') as f:
             (le, clf) = pickle.load(f)
-	reps = getRep(img)
+	gray = cv2.cvtColor(Img, cv2.COLOR_RGB2GRAY)
+        gray = cv2.GaussianBlur(gray, (21, 21), 0)
+	avg_area = align.motionDetect(gray, lastImg)
+	if ((avg_area < 500) & (trackingFace == 0)):
+            motion_detected = False
+        else:
+            motion_detected = True
+	rospy.loginfo("motion state: {}".format(motion_detected))
+	if motion_detected == True:
+	    reps = getRep(Img)
+	else:
+	    reps = []
 	for r in reps:
 	    rep = r.reshape(1, -1)
 	    predictions = clf.predict_proba(rep).ravel()
@@ -211,10 +226,9 @@ def infer(img):
 	    person = le.inverse_transform(maxI)
 	    confidence = predictions[maxI]
 	    pub2.publish(person)
+	lastImg = gray
 
 if __name__ == '__main__':
-    if not os.path.exists(recDir):
-        os.makedirs(recDir)
     rospy.init_node('people_rec')
     pub = rospy.Publisher('capturingProgress', UInt8, queue_size=1)
     pub1 = rospy.Publisher('trainingProgress', UInt8, queue_size=1)
