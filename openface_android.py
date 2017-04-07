@@ -48,7 +48,6 @@ count = 0
 trackingFace = 0
 rec_mode = False
 training_mode = False
-motion_detected = False
 lastImg = None
 
 fileDir = os.path.expanduser('~/catkin_ws/src/openface4ARM/')
@@ -118,7 +117,6 @@ def getRep(rgbImg):
             tracker.start_track(rgbImg,dlib.rectangle(bb.left(),bb.top(),bb.right(),bb.bottom()))
             trackingFace = 1
         else:
-            motion_detected = False
             rospy.loginfo("Unable to detect your face, please face the camera")
 	    return ([], None)
     else:
@@ -129,7 +127,6 @@ def getRep(rgbImg):
         else:
             rospy.loginfo("Unable to detect your face, please face the camera")
             trackingFace = 0
-            motion_detected = False
             return ([], None)
     rospy.loginfo("Face detection took {} seconds.".format(time.time() - start))
     start = time.time()
@@ -157,10 +154,9 @@ def train_callback(msg):
     path = ('{}{}'.format(alignedDir,msg.data))
     if not os.path.exists(path):
         os.makedirs(path)
-    rospy.loginfo('Starting training mode.')
+
     os.system('rm {}cache.t7'.format(alignedDir))
-    #while not rospy.is_shutdown():
-    while training_mode == True:
+    while not rospy.is_shutdown():
     	if count == images_required:
 	    start = time.time()
 	    os.system('luajit {}main.lua -outDir {} -data {}'.format(luaDir,featureDir,alignedDir))
@@ -205,30 +201,19 @@ def infer(Img):
         with open(os.path.join(featureDir,'classifier.pkl'), 'r') as f:
             (le, clf) = pickle.load(f)
 	start = time.time()
-	gray = cv2.cvtColor(Img, cv2.COLOR_RGB2GRAY)
-        gray = cv2.GaussianBlur(gray, (21, 21), 0)
-	avg_area = align.motionDetect(gray, lastImg)
-	if ((avg_area < 500) & (trackingFace == 0)):
-            motion_detected = False
-        else:
-            motion_detected = True
-	rospy.loginfo("Motion detection took: {} secs".format(time.time()-start))
-	rospy.loginfo("Motion state: {}".format(motion_detected))
-	if motion_detected == True:
-	    reps, bgrImg = getRep(Img)
-    	    if bgrImg is not None:
-	        for r in reps:
-	            rep = r.reshape(1, -1)
-	            predictions = clf.predict_proba(rep).ravel()
-	    	    maxI = np.argmax(predictions)
-	    	    person = le.inverse_transform(maxI)
-	    	    confidence = predictions[maxI]
-	            pub2.publish(person)
-    	    	cv2.putText(bgrImg, "P: {}".format(person), (1, 7), cv2.FONT_HERSHEY_PLAIN, 0.6, (0, 255, 0), 1)
-    	    	cv2.putText(bgrImg, "C: {}".format(confidence), (1, 95), cv2.FONT_HERSHEY_PLAIN, 0.6, (0, 255, 0), 1)
-		faceImg = bridge.cv2_to_imgmsg(bgrImg, "bgr8")
-    	        face_pub.publish(faceImg)
-	lastImg = gray
+	reps, bgrImg = getRep(Img)
+    	if bgrImg is not None:
+	    for r in reps:
+	    	rep = r.reshape(1, -1)
+	    	predictions = clf.predict_proba(rep).ravel()
+	    	maxI = np.argmax(predictions)
+	    	person = le.inverse_transform(maxI)
+	    	confidence = predictions[maxI]
+	    	pub2.publish(person)
+    	    cv2.putText(bgrImg, "P: {}".format(person), (1, 7), cv2.FONT_HERSHEY_PLAIN, 0.6, (0, 255, 0), 1)
+    	    cv2.putText(bgrImg, "C: {}".format(confidence), (1, 95), cv2.FONT_HERSHEY_PLAIN, 0.6, (0, 255, 0), 1)
+	    faceImg = bridge.cv2_to_imgmsg(bgrImg, "bgr8")
+    	    face_pub.publish(faceImg)
 
 if __name__ == '__main__':
     rospy.init_node('people_rec')
