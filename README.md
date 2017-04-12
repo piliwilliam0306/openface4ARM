@@ -29,6 +29,9 @@
 -->
 ## Running openface_ros node
     $ rosrun openface4ARM openface_ros.py
+
+## When interfacing odroid with android
+    $ rosrun openface4ARM openface_android.py
    
 ## Start tranning (replace banana with member name. trainingProgress topic = 100 when finish training)
     $ rostopic pub /cmdTrainning std_msgs/String "data: 'banana'"
